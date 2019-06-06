@@ -26,28 +26,36 @@ As can be seen above, the training set is made of 8143 rows and 7 columns. The v
 
 Some plots:
 
-```{r, fig=T}
+```{r}
 library(tidyverse)
 library(cowplot)
-A <- read.delim('datatraining.txt', sep=',')
-A$Occupancy <- as.factor(A$Occupancy)
-attach(A)
-BARone <- ggplot(A, aes(Occupancy, Temperature))+
+
+train$Occupancy <- as.factor(train$Occupancy)
+
+BARone <- ggplot(train, aes(Occupancy, Temperature, fill=Occupancy))+
   stat_summary(fun.y = mean,
                geom = 'bar',
-               position = 'dodge')
-BARtwo <- ggplot(A, aes(Occupancy, Humidity))+
+               position = 'dodge') + scale_fill_manual(values = c('pink', 'grey'))+
+  theme(legend.position="none")
+
+BARtwo <- ggplot(train, aes(Occupancy, Humidity, fill=Occupancy))+
   stat_summary(fun.y = mean,
                geom = 'bar',
-               position = 'dodge')
-BARthree <- ggplot(A, aes(Occupancy, Light))+
+               position = 'dodge')+
+    theme(legend.position="none")
+
+BARthree <- ggplot(train, aes(Occupancy, Light, fill=Occupancy))+
   stat_summary(fun.y = mean,
                geom = 'bar',
-               position = 'dodge')
-BARfour <- ggplot(A, aes(Occupancy, CO2))+
+               position = 'dodge')+
+    theme(legend.position="none")
+
+BARfour <- ggplot(train, aes(Occupancy, CO2, fill=Occupancy))+
   stat_summary(fun.y = mean,
                geom = 'bar',
-               position = 'dodge')
+               position = 'dodge')+
+    theme(legend.position="none")
+
 plot_grid(BARone, BARtwo, BARthree, BARfour, labels = "AUTO")
 ```
 
@@ -70,9 +78,6 @@ for(i in 2:len){
   train$light_change[i] <- train$Light[i] - train$Light[i-1]
 }
 ```
-
-
-plottare plottare plottare plottare
 
 ## Models
 
