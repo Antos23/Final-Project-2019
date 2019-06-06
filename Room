@@ -61,7 +61,45 @@ plot_grid(BARone, BARtwo, BARthree, BARfour, labels = "AUTO")
 
 ### New columns
 
-However, before building the model, we want to expand our dataset, by taking advantage of the time order of our datapoints. In particular, it may be interested to investigate whether the change in some of the conditions in the room through time is a good predictor of human presence. This is because the original features, as provided in the dataset, express an absolute value of the room temperature, humidity and so on, which in turn can be affected by other variables (such as the time of the day, the season or the general external climate conditions). On the other hand, the increase in temperature, humidity, CO2 concentration and light level may be determined by the presence of people. We choose to calculate how these conditions change in 1 minute, by subtracting each row with the previous one. 
+However, before building the model, we want to expand our dataset, by taking advantage of the time order of our datapoints.
+The first thing we could do is to verify where each observation is recorded during daytime or not.
+First of all, we transform the variable date from a factor into a temporal one.
+
+```{r}
+Hour <- c()
+train$date <- as.POSIXlt(train$date, format="%Y-%m-%d %H:%M:%S")
+for (i in 1:dim(train)[1]){
+  H <- hour(train$date[i])
+  Hour <- append(Hour, H)
+}
+HourT <- c()
+for (i in 1:dim(test)[1]){
+  H <- hour(test$date[i])
+  HourT <- append(HourT, H)
+}
+Hour <- as.numeric(Hour)
+HourT <- as.numeric(HourT)
+Day <- c()
+for (i in 1:dim(train)[1]){
+  ifelse(between(Hour[i], 8, 20), Day <- append(Day, TRUE), Day <- append(Day, FALSE))
+}
+DayT <- c()
+for (i in 1:dim(test)[1]){
+  ifelse(between(HourT[i], 8, 20), DayT <- append(DayT, TRUE), DayT <- append(DayT, FALSE))
+}
+train$Day <- Day
+test$Day <- DayT
+```
+
+```{r}
+ggplot(data = train, aes(x = date, y = as.factor(Occupancy), color=Day)) +
+         geom_point() +
+         scale_color_manual(values=c('black', 'cyan')) +
+         ylab('Occupancy')
+         
+```
+
+Also, it may be interesting to investigate whether the change in some of the conditions in the room through time is a good predictor of human presence. This is because the original features, as provided in the dataset, express an absolute value of the room temperature, humidity and so on, which in turn can be affected by other variables (such as the time of the day, the season or the general external climate conditions). On the other hand, the increase in temperature, humidity, CO2 concentration and light level may be determined by the presence of people. We choose to calculate how these conditions change in 1 minute, by subtracting each row with the previous one. 
 
 ```{r}
 len <- dim(train)[1]
