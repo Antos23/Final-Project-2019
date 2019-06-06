@@ -1,0 +1,172 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require("knitr")
+```
+
+## Dataset
+
+Let us load our data. We are provided with three datasets: one training set and two test tests. Since the two test sets have the same columns, we simply merge them together.
+
+
+```{r}
+train <- read.csv("datatraining.txt", header=T)
+test <- rbind(read.csv("datatest.txt", header=T), read.csv("datatest2.txt", header=T))
+```
+
+Let us inspect the dataset, by looking at the variables.
+
+```{r}
+summary(train)
+dim(train)
+summary(test)
+dim(test)
+```
+
+As can be seen above, the training set is made of 8143 rows and 7 columns. The variables provide information about humidity, temperature, light and CO2 level of a room through time, as well as about the presence of people, which is expressed in a binary form (either the room is empty or it is not). Our aim is to predict whether there is someone in the room or not based on these features. We will buildd some models and test them on the test set, which is made of 12417 rows and the same columns.
+
+Some plots:
+
+```{r, fig=T}
+library(tidyverse)
+library(cowplot)
+A <- read.delim('datatraining.txt', sep=',')
+A$Occupancy <- as.factor(A$Occupancy)
+attach(A)
+BARone <- ggplot(A, aes(Occupancy, Temperature))+
+  stat_summary(fun.y = mean,
+               geom = 'bar',
+               position = 'dodge')
+BARtwo <- ggplot(A, aes(Occupancy, Humidity))+
+  stat_summary(fun.y = mean,
+               geom = 'bar',
+               position = 'dodge')
+BARthree <- ggplot(A, aes(Occupancy, Light))+
+  stat_summary(fun.y = mean,
+               geom = 'bar',
+               position = 'dodge')
+BARfour <- ggplot(A, aes(Occupancy, CO2))+
+  stat_summary(fun.y = mean,
+               geom = 'bar',
+               position = 'dodge')
+plot_grid(BARone, BARtwo, BARthree, BARfour, labels = "AUTO")
+```
+
+### New columns
+
+However, before building the model, we want to expand our dataset, by taking advantage of the time order of our datapoints. In particular, it may be interested to investigate whether the change in some of the conditions in the room through time is a good predictor of human presence. This is because the original features, as provided in the dataset, express an absolute value of the room temperature, humidity and so on, which in turn can be affected by other variables (such as the time of the day, the season or the general external climate conditions). On the other hand, the increase in temperature, humidity, CO2 concentration and light level may be determined by the presence of people. We choose to calculate how these conditions change in 1 minute, by subtracting each row with the previous one. 
+
+```{r}
+len <- dim(train)[1]
+
+train$hum_change <- rep(0, len)
+train$temp_change <- rep(0, len)
+train$CO2_change <- rep(0, len)
+train$light_change <- rep(0, len)
+
+for(i in 2:len){
+  train$hum_change[i] = train$Humidity[i] - train$Humidity[i-1]
+  train$temp_change[i] <- train$Temperature[i] - train$Temperature[i-1]
+  train$CO2_change[i] <- train$CO2[i] - train$CO2[i-1]
+  train$light_change[i] <- train$Light[i] - train$Light[i-1]
+}
+```
+
+
+plottare plottare plottare plottare
+
+## Models
+
+### Logistic regression
+
+With original data
+```{r}
+glm_mod <- glm(Occupancy ~ Temperature+ Humidity+ Light+ CO2+ HumidityRatio, family="binomial", data=train)
+summary(glm_mod)
+```
+
+Adding the new cols
+```{r}
+glm_mod_exp <- glm(Occupancy ~. - date, family="binomial", data=train)
+summary(glm_mod_exp)
+```
+
+Removing HumidityRatio and some of the new cols from the model.
+
+```{r}
+glm_mod_exp <- glm(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, family="binomial", data=train)
+summary(glm_mod_exp)
+```
+All the predictors are significant but the change in temperature and in CO2 concentration. The AIC gets lower, which means that the model is less complex but still a good fit for the data.
+
+Now, we want to test the model on the test set. To do so, we need do add the columns as we have done above.
+
+```{r}
+len <- dim(test)[1]
+
+test$hum_change <- rep(0, len)
+test$temp_change <- rep(0, len)
+test$CO2_change <- rep(0, len)
+test$light_change <- rep(0, len)
+
+for(i in 2:len){
+  test$hum_change[i] = test$Humidity[i] - test$Humidity[i-1]
+  test$temp_change[i] <- test$Temperature[i] - test$Temperature[i-1]
+  test$CO2_change[i] <- test$CO2[i] - test$CO2[i-1]
+  test$light_change[i] <- test$Light[i] - test$Light[i-1]
+}
+```
+
+Creation of a variable Daytime.
+
+```{r}
+Hour <- c()
+for (i in 1:dim(train)[1]){
+  date = as.POSIXct(toString(train$date[i]))
+  Hour <- append(Hour,strftime(date, format(date, format="%H")))
+}
+HourT <- c()
+for (i in 1:dim(test)[1]){
+  date = as.POSIXct(toString(test$date[i]))
+  HourT <- append(HourT,strftime(date, format(date, format="%H")))
+}
+Hour <- as.numeric(Hour)
+HourT <- as.numeric(HourT)
+Day <- c()
+for (i in 1:dim(train)[1]){
+  ifelse(between(Hour[i], 8, 20), Day <- append(Day, TRUE), Day <- append(Day, FALSE))
+}
+DayT <- c()
+for (i in 1:dim(test)[1]){
+  ifelse(between(HourT[i], 8, 20), DayT <- append(DayT, TRUE), DayT <- append(DayT, FALSE))
+}
+train$Day <- Day
+test$Day <- DayT
+```
+
+Now, we can make predictions. 
+
+```{r}
+test.probs <- predict(glm_mod_exp, test, type = 'response')
+test.pred <- rep(0, nrow(test))
+test.pred[test.probs >= 0.6] <- 1
+table(test.pred, test$Occupancy)
+```
+
+```{r}
+glm_mod_expo <- glm(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change + Day, family="binomial", data=train)
+test.probs <- predict(glm_mod_expo, test, type = 'response')
+test.pred <- rep(0, nrow(test))
+test.pred[test.probs >= 0.6] <- 1
+table(test.pred, test$Occupancy)
+```
+
+We expect the last model, with the new columns, to work better than the one with only the original features. Let's see if that is true.
+
+```{r}
+test.probs <- predict(glm_mod, test, type = 'response')
+test.pred <- rep(0, nrow(test))
+test.pred[test.probs >= 0.6] <- 1
+table(test.pred, test$Occupancy)
+```
+ 
+Yes, it is. 
