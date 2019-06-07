@@ -66,6 +66,7 @@ The first thing we could do is to verify where each observation is recorded duri
 First of all, we transform the variable date from a factor into a temporal one.
 
 ```{r}
+library(lubridate)
 Hour <- c()
 train$date <- as.POSIXlt(train$date, format="%Y-%m-%d %H:%M:%S")
 for (i in 1:dim(train)[1]){
