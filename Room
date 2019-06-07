@@ -255,3 +255,17 @@ yhat.room <- predict(tree.room, test, type="class")
 table(yhat.room,test$Occupancy)
 mean(yhat.room==test$Occupancy)
 ```
+
+Bagging
+
+Bagging
+
+```{r}
+bag.room <- randomForest(Occupancy~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train, mtry=5)
+bag.room
+bag.room$importance
+varImpPlot(bag.room)
+```
+
+Looking at the importance of the variables, we can clearly notice that light is the most important one. Also, by performing bagging, the model accuracy increases considerably.
+(OOB estimate of  error rate: 0.64%)
