@@ -214,7 +214,15 @@ table(test.pred, test$Occupancy)
 ```
  
 Yes, it is. 
+Let us now see what's the outcome using the method of the k-nearest neighbors, respectively with values of one and three as k.
 
+```{r}
+library(class)
+set.seed(78)
+knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=1)
+table(knn.pred, test$Occupancy)
+knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=3)
+table(knn.pred, test$Occupancy)
 
 ### Linear Discriminant Analysis
 
