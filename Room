@@ -213,3 +213,17 @@ table(test.pred, test$Occupancy)
 ```
  
 Yes, it is. 
+
+
+### Linear Discriminant Analysis
+
+Let us perform a linear discriminant analysis on our data, by including the same variables that we considered in the glm.
+```{r}
+library(MASS)
+lda.room <- lda(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
+lda.predictions <- predict(lda.room)
+table(lda.predictions$class, train$Occupancy)
+```
+
+The accuracy improves considerably. On the other hand, including the variable "Day" as well does not determine a significant change (only 2 mistakes less).
+
