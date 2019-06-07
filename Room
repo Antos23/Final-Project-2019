@@ -214,15 +214,7 @@ table(test.pred, test$Occupancy)
 ```
  
 Yes, it is. 
-Let us now see what's the outcome using the method of the k-nearest neighbors, respectively with values of one and three as k.
 
-```{r}
-library(class)
-set.seed(78)
-knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=1)
-table(knn.pred, test$Occupancy)
-knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=3)
-table(knn.pred, test$Occupancy)
 
 ### Linear Discriminant Analysis
 
@@ -236,3 +228,30 @@ table(lda.predictions$class, train$Occupancy)
 
 The accuracy improves considerably. On the other hand, including the variable "Day" as well does not determine a significant change (only 2 mistakes less).
 
+### Tree
+
+Now we want to build a classification tree on our dataset.
+
+```{r}
+library(tree)
+library(rpart)
+library(rpart.plot)
+
+#Using function tree
+tree.room <- tree(Occupancy~ Temperature + Humidity + Light + CO2 + hum_change + light_change, train)
+plot(tree.room)
+text(my.tree, pretty=0)
+
+#Using function rpart
+tree.room.rpart <- rpart(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
+rpart.plot(tree.room, box.palette="RdBu", shadow.col="gray")
+```
+
+Now let us test it on the test set.
+
+```{r}
+yhat.room <- predict(tree.room, test, type="class")
+#to compute the error
+table(yhat.room,test$Occupancy)
+mean(yhat.room==test$Occupancy)
+```
