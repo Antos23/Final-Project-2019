@@ -68,7 +68,7 @@ First of all, we transform the variable date from a factor into a temporal one.
 ```{r}
 library(lubridate)
 Hour <- c()
-train$date <- as.POSIXlt(train$date, format="%Y-%m-%d %H:%M:%S")
+train$date <- as.POSIXct(train$date, format="%Y-%m-%d %H:%M:%S")
 for (i in 1:dim(train)[1]){
   H <- hour(train$date[i])
   Hour <- append(Hour, H)
@@ -219,14 +219,27 @@ Yes, it is.
 ### Linear Discriminant Analysis
 
 Let us perform a linear discriminant analysis on our data, by including the same variables that we considered in the glm.
+
 ```{r}
 library(MASS)
 lda.room <- lda(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
-lda.predictions <- predict(lda.room)
-table(lda.predictions$class, train$Occupancy)
+lda.predictions <- predict(lda.room, newdata = test)
+table(lda.predictions$class, test$Occupancy)
+mean(lda.predictions$class == test$Occupancy)
 ```
 
 The accuracy improves considerably. On the other hand, including the variable "Day" as well does not determine a significant change (only 2 mistakes less).
+
+### Quadratic Discriminant Analysis
+
+Same principle as LDA but with some additional flexibility. The model behaves not as well as before.
+
+```{r}
+qda.room <- qda(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
+qda.predictions <- predict(qda.room)
+table(qda.predictions$class, train$Occupancy)
+mean(qda.predictions$class == train$Occupancy)
+```
 
 ### Tree
 
@@ -240,11 +253,10 @@ library(rpart.plot)
 #Using function tree
 tree.room <- tree(Occupancy~ Temperature + Humidity + Light + CO2 + hum_change + light_change, train)
 plot(tree.room)
-text(my.tree, pretty=0)
+text(tree.room, pretty=0)
 
 #Using function rpart
 tree.room.rpart <- rpart(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
-rpart.plot(tree.room, box.palette="RdBu", shadow.col="gray")
 ```
 
 Now let us test it on the test set.
@@ -258,9 +270,8 @@ mean(yhat.room==test$Occupancy)
 
 Bagging
 
-Bagging
-
 ```{r}
+library(randomForest)
 bag.room <- randomForest(Occupancy~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train, mtry=5)
 bag.room
 bag.room$importance
