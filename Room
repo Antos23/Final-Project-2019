@@ -241,6 +241,26 @@ table(qda.predictions$class, train$Occupancy)
 mean(qda.predictions$class == train$Occupancy)
 ```
 
+Let's roc
+
+```{r}
+library(pROC)
+par(pty='s')
+roc(test$Occupancy, as.numeric(lda.predictions$class), plot=T, percent=T, legacy.axes=T, xlab='False Positive Percentage', ylab='True Positive Percentage', col='blue', print.auc=T)
+roc(test$Occupancy, as.numeric(qda.predictions$class), plot=T, percent=T, legacy.axes=T, xlab='False Positive Percentage', ylab='True Positive Percentage', col='red', print.auc=T, print.auc.y=40, add=T)
+legend('bottomright', legend=c('LDA', 'QDA'), col = c('blue', 'red', 'green'), lwd=4)
+```
+
+KNN
+
+```{r}
+library(class)
+set.seed(78)
+knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=1)
+table(knn.pred, test$Occupancy)
+mean(knn.pred == test$Occupancy)
+```
+
 ### Tree
 
 Now we want to build a classification tree on our dataset.
@@ -303,8 +323,6 @@ forests
 ```
 Accuratezza random forest ->  la più alta è 97% con m=1. Perché?
 
-
-
 Boosting
 
 ```{r}
@@ -315,4 +333,8 @@ boost.room <- gbm(Occupancy~Light, data=train, distribution="bernoulli", n.trees
 summary(boost.room)
 ###QUESTA FUNZIONE NON FUNZIONA :(
 
+library(adabag)
+boost <- boosting(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
+boost <- predict(A, newdata=test)
+boost$error
 ```
