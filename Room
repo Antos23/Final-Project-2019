@@ -338,3 +338,7 @@ boost <- boosting(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + 
 boost <- predict(A, newdata=test)
 boost$error
 ```
+
+A possible explanation for random forests being less accurate than a single classification tree when tested on the test set has to be found in the algorithm behind the construction of random forestes itself.
+A random forest is built using m features which are randomly picked, in order to obtain trees that are not correlated between each others and improve the variance.
+In our case, when m=1, i.e. when the trees are built using only 1 feature, this procedure might diminish the influence of the variable "Light" (which is able to predict the occupancy on its own, according to the single classification tree), as there will be trees 
