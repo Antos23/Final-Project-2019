@@ -276,7 +276,43 @@ bag.room <- randomForest(Occupancy~ Temperature + Humidity + Light + CO2 + hum_c
 bag.room
 bag.room$importance
 varImpPlot(bag.room)
+
+#Predictions
+yhat.bag <- predict(bag.room, test)
+table(yhat.bag,test$Occupancy)
+mean(yhat.bag==test$Occupancy)
 ```
 
 Looking at the importance of the variables, we can clearly notice that light is the most important one. Also, by performing bagging, the model accuracy increases considerably.
 (OOB estimate of  error rate: 0.64%)
+
+Accuratezza bagging ->95%.
+
+Random forest
+
+```{r}
+forests <- data.frame(matrix(, nrow=, ncol=2))
+names(forests) <- c("m", "Accuracy")
+for(m in 1:6){
+  rf.room <- randomForest(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train ,mtry=m, ntree=500)
+  print(importance(rf.room))
+  yhat.rf <- predict(rf.room, newdata=test)
+  forests[m,] <- c(m, mean(yhat.rf==test$Occupancy))
+}
+forests
+```
+Accuratezza random forest ->  la più alta è 97% con m=1. Perché?
+
+
+
+Boosting
+
+```{r}
+library(gbm)
+set.seed(14)
+boost.room <- gbm(Occupancy~Light, data=train, distribution="bernoulli", n.trees=100, shrinkage=0.01)
+#per il boosting dobbiamo passare tre parametri: B, interaction depth, shrinkage (lambda)
+summary(boost.room)
+###QUESTA FUNZIONE NON FUNZIONA :(
+
+```
