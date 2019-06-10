@@ -369,3 +369,14 @@ SVCs
 ```
 
 The cost parameter that results in the best classifier is 1: decreasing cost further makes our margin too wide and increases the number of resulting violations too much. In the bias-variance tradeoff we start with high variance but low bias when we have a high cost parameter and a consequent narrow margin. For this reason we start decreasing the cost value. However, after an equilibrium at around 1 the margin starts becoming too wide: the number of support vectors is becoming too large and we are going towards a situation of high bias. In fact, we are fitting our data less hard and at a certain point (for cost = 1),the amount of rigidity of the system is such that the performance starts decreasing.
+
+```{r}
+svc.fun <- svm(Occupancy ~ Temperature + Humidity + Light + CO2 + Day + hum_change + light_change, train, kernel='linear', cost=1, scale=T)
+library(ggfortify)
+train$Prediction <- svc.fun$fitted
+p <- as.factor(svc.pred)
+autoplot(prcomp(train[c(2,3,4,5,8,9,10,12)], scale=T), data=train, colour='Prediction', frame=T)
+train <- subset(train, select=-13)
+```
+
+Ideally, if we were able to visualize data in a multi-dimensional way, we would have the chance of gaze at a classification with only 324 vectors (4% of the observations) lying on it. Since unfortunately this is not the case, we will settle for a bidimensional visualization made possible by a principal component analysis algorithm. Of course much of the accuracy is lost and the two classes are not as splitted as they would be in a multi-dimensional visualization.
