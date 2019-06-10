@@ -193,7 +193,7 @@ Now, we can make predictions.
 test.probs <- predict(glm_mod_exp, test, type = 'response')
 test.pred <- rep(0, nrow(test))
 test.pred[test.probs >= 0.6] <- 1
-table(test.pred, test$Occupancy)
+table(predict=test.pred, truth=test$Occupancy)
 ```
 
 ```{r}
@@ -201,7 +201,7 @@ glm_mod_expo <- glm(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_chang
 test.probs <- predict(glm_mod_expo, test, type = 'response')
 test.pred <- rep(0, nrow(test))
 test.pred[test.probs >= 0.6] <- 1
-table(test.pred, test$Occupancy)
+table(predict=test.pred, truth=test$Occupancy)
 ```
 
 We expect the last model, with the new columns, to work better than the one with only the original features. Let's see if that is true.
@@ -210,7 +210,7 @@ We expect the last model, with the new columns, to work better than the one with
 test.probs <- predict(glm_mod, test, type = 'response')
 test.pred <- rep(0, nrow(test))
 test.pred[test.probs >= 0.6] <- 1
-table(test.pred, test$Occupancy)
+table(predict=test.pred, truth=test$Occupancy)
 ```
  
 Yes, it is. 
@@ -224,7 +224,7 @@ Let us perform a linear discriminant analysis on our data, by including the same
 library(MASS)
 lda.room <- lda(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
 lda.predictions <- predict(lda.room, newdata = test)
-table(lda.predictions$class, test$Occupancy)
+table(predict=lda.predictions$class, truth=test$Occupancy)
 mean(lda.predictions$class == test$Occupancy)
 ```
 
@@ -235,10 +235,10 @@ The accuracy improves considerably. On the other hand, including the variable "D
 Same principle as LDA but with some additional flexibility. The model behaves not as well as before.
 
 ```{r}
-qda.room <- qda(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
-qda.predictions <- predict(qda.room)
-table(qda.predictions$class, train$Occupancy)
-mean(qda.predictions$class == train$Occupancy)
+qda.room <- qda(Occupancy ~ Temperature + Humidity + Light + CO2 + Day + hum_change + light_change, data=train)
+qda.predictions <- predict(qda.room, newdata=test)
+table(predict=qda.predictions$class, truth=test$Occupancy)
+mean(qda.predictions$class == test$Occupancy)
 ```
 
 Let's roc
@@ -251,13 +251,13 @@ roc(test$Occupancy, as.numeric(qda.predictions$class), plot=T, percent=T, legacy
 legend('bottomright', legend=c('LDA', 'QDA'), col = c('blue', 'red', 'green'), lwd=4)
 ```
 
-KNN
+### KNN
 
 ```{r}
 library(class)
 set.seed(78)
-knn.pred <- knn(train[c(-1,-8)], test[c(-1,-8)], train$Occupancy, k=1)
-table(knn.pred, test$Occupancy)
+knn.pred <- knn(train[c(2,3,4,5,8,9,12)], test[c(2,3,4,5,8,9,12)], train$Occupancy, k=1)
+table(predict=knn.pred, truth=test$Occupancy)
 mean(knn.pred == test$Occupancy)
 ```
 
@@ -284,7 +284,7 @@ Now let us test it on the test set.
 ```{r}
 yhat.room <- predict(tree.room, test, type="class")
 #to compute the error
-table(yhat.room,test$Occupancy)
+table(predict=yhat.room, truth=test$Occupancy)
 mean(yhat.room==test$Occupancy)
 ```
 
@@ -299,7 +299,7 @@ varImpPlot(bag.room)
 
 #Predictions
 yhat.bag <- predict(bag.room, test)
-table(yhat.bag,test$Occupancy)
+table(predict=yhat.bag, truth=test$Occupancy)
 mean(yhat.bag==test$Occupancy)
 ```
 
@@ -326,13 +326,6 @@ Accuratezza random forest ->  la più alta è 97% con m=1. Perché?
 Boosting
 
 ```{r}
-library(gbm)
-set.seed(14)
-boost.room <- gbm(Occupancy~Light, data=train, distribution="bernoulli", n.trees=100, shrinkage=0.01)
-#per il boosting dobbiamo passare tre parametri: B, interaction depth, shrinkage (lambda)
-summary(boost.room)
-###QUESTA FUNZIONE NON FUNZIONA :(
-
 library(adabag)
 boost <- boosting(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train)
 boost <- predict(A, newdata=test)
@@ -341,4 +334,38 @@ boost$error
 
 A possible explanation for random forests being less accurate than a single classification tree when tested on the test set has to be found in the algorithm behind the construction of random forestes itself.
 A random forest is built using m features which are randomly picked, in order to obtain trees that are not correlated between each others and improve the variance.
-In our case, when m=1, i.e. when the trees are built using only 1 feature, this procedure might diminish the influence of the variable "Light" (which is able to predict the occupancy on its own, according to the single classification tree), as there will be trees 
+In our case, when m=1, i.e. when the trees are built using only 1 feature, this procedure might diminish the influence of the variable "Light" (which is able to predict the occupancy on its own, according to the single classification tree), as there will be trees.
+
+### Support Vector Classifier
+We look for the hyperplane that best approximates a linear split of our data. The natural choice is the maximal margin hyperplane, which is the separating hyperplane that is farthest from the training observations, if it exists. The parameter cost of the function svm in R controls for the amount of flexibility of our model: initially we look for few violations of the principle of linear separation, we want a margin that is as accurate as possible on the training data. Hence, we want to fit our data hard indicating a high cost for each of those violations.
+
+```{r}
+library(e1071)
+svc.fun <- svm(Occupancy ~ Temperature + Humidity + Light + CO2 + Day + hum_change + light_change, train, kernel='linear', cost=100, scale=T)
+summary(svm.fun)
+```
+
+The only observations that do affect the support vector classifier are those that lie directly on the margin or on the wrong side of it. In our first attempt we have 314 support vectors.
+
+```{r}
+svc.pred <- predict(svc.fun, test)
+table(predict=svc.pred, truth=test$Occupancy)
+mean(svc.pred == test$Occupancy)
+```
+
+Even though with such a high cost parameter the model is going to behave very well on the training data, this does not necessarily imply the best behavior on test data. Even though there are few prediction errors when we validate our model, it is quite likely that we can improve the performance further by allowing for more violations. We make our model less sensible to the training data by enlarging the margin of the classifier. For choosing the best cost parameter the simplest way is the one of comparing the performance on the validation set.
+
+```{r}
+SVCs <- data.frame(matrix(, nrow=, ncol=2))
+names(SVCs) <- c("cost", "Accuracy")
+counter = 1
+for (i in c(50, 10, 5, 1, 0.1, 0.01, 0.001)){
+  svc.fun <- svm(Occupancy ~ Temperature + Humidity + Light + CO2 + Day + hum_change + light_change, train, kernel='linear', cost=i, scale=T)
+  svc.pred <- predict(svc.fun, test)
+  SVCs[counter,] <- c(i, mean(svc.pred == test$Occupancy))
+  counter = counter + 1
+}
+SVCs
+```
+
+The cost parameter that results in the best classifier is 1: decreasing cost further makes our margin too wide and increases the number of resulting violations too much. In the bias-variance tradeoff we start with high variance but low bias when we have a high cost parameter and a consequent narrow margin. For this reason we start decreasing the cost value. However, after an equilibrium at around 1 the margin starts becoming too wide: the number of support vectors is becoming too large and we are going towards a situation of high bias. In fact, we are fitting our data less hard and at a certain point (for cost = 1),the amount of rigidity of the system is such that the performance starts decreasing.
