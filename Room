@@ -61,7 +61,14 @@ plot_grid(BARone, BARtwo, BARthree, BARfour, labels = "AUTO")
 
 ### New columns
 
-However, before building the model, we want to expand our dataset, by taking advantage of the time order of our datapoints.
+First of all we notice that there are two measures for the humidity in the room: the humidity and the humidity ratio. By looking at the attribute information of the dataset we find out that the humidity ratio is a quantity derived directly from temperature and relative humidity. Since those two variables are both contained in the dataset, we might incur in collinearity if we created models including all the three variables. This guess is confirmed by the following:
+
+```{r}
+summary(lm(HumidityRatio ~ Temperature + Humidity, data=train))$adj.r.squared
+```
+
+Humidity ratio is explained completely by the two variables: we will exclude it in the models to not incur in collinearity.
+Before building models, we want to expand our dataset, by taking advantage of the time order of our datapoints.
 The first thing we could do is to verify where each observation is recorded during daytime or not.
 First of all, we transform the variable date from a factor into a temporal one.
 
@@ -192,7 +199,7 @@ Now, we can make predictions.
 ```{r}
 test.probs <- predict(glm_mod_exp, test, type = 'response')
 test.pred <- rep(0, nrow(test))
-test.pred[test.probs >= 0.6] <- 1
+test.pred[test.probs >= 0.5] <- 1
 table(predict=test.pred, truth=test$Occupancy)
 ```
 
@@ -200,7 +207,7 @@ table(predict=test.pred, truth=test$Occupancy)
 glm_mod_expo <- glm(Occupancy ~ Temperature + Humidity + Light + CO2 + hum_change + light_change + Day, family="binomial", data=train)
 test.probs <- predict(glm_mod_expo, test, type = 'response')
 test.pred <- rep(0, nrow(test))
-test.pred[test.probs >= 0.6] <- 1
+test.pred[test.probs >= 0.5] <- 1
 table(predict=test.pred, truth=test$Occupancy)
 ```
 
@@ -209,7 +216,7 @@ We expect the last model, with the new columns, to work better than the one with
 ```{r}
 test.probs <- predict(glm_mod, test, type = 'response')
 test.pred <- rep(0, nrow(test))
-test.pred[test.probs >= 0.6] <- 1
+test.pred[test.probs >= 0.5] <- 1
 table(predict=test.pred, truth=test$Occupancy)
 ```
  
@@ -321,6 +328,7 @@ for(m in 1:6){
 }
 forests
 ```
+
 Accuratezza random forest ->  la più alta è 97% con m=1. Perché?
 
 Boosting
@@ -342,7 +350,7 @@ We look for the hyperplane that best approximates a linear split of our data. Th
 ```{r}
 library(e1071)
 svc.fun <- svm(Occupancy ~ Temperature + Humidity + Light + CO2 + Day + hum_change + light_change, train, kernel='linear', cost=100, scale=T)
-summary(svm.fun)
+summary(svc.fun)
 ```
 
 The only observations that do affect the support vector classifier are those that lie directly on the margin or on the wrong side of it. In our first attempt we have 314 support vectors.
@@ -380,3 +388,52 @@ train <- subset(train, select=-13)
 ```
 
 Ideally, if we were able to visualize data in a multi-dimensional way, we would have the chance of gaze at a classification with only 324 vectors (4% of the observations) lying on it. Since unfortunately this is not the case, we will settle for a bidimensional visualization made possible by a principal component analysis algorithm. Of course much of the accuracy is lost and the two classes are not as splitted as they would be in a multi-dimensional visualization.
+
+### Excluding light
+
+We have now seen how it is relatively to make the right call when making use of the variable light: one could easily argue that it is too trivial to predict the occupancy of a room if the light is turned on. What if, however we were not able to measure light and hence we could not control for it? How much would our model worsen its performance? Let us start from analyzing the behaviour using the logistic function.
+
+```{r}
+noLight.log <- glm(Occupancy ~ Temperature + Humidity + CO2 + Day + temp_change + hum_change + CO2_change, train, family='binomial')
+summary(noLight.log)
+```
+
+One interesting result is that the variables temp_change and CO2_change, that did not result as significant in the previous glm calls, do result significant now.
+
+```{r}
+test.noL <- predict(noLight.log, test, type = 'response')
+test.noL <- rep(0, nrow(test))
+test.noL[test.noL >= 0.5] <- 1
+mean(test.noL == test$Occupancy)
+```
+
+The performance of the logistic function is quite satisfactory: the model makes the right call 81% of the time.
+What is instead the behaviour on trees?
+
+```{r}
+noL.tree <- tree(Occupancy ~ Temperature + Humidity + CO2 + hum_change + CO2_change + temp_change + Day, train)
+plot(noL.tree)
+text(noL.tree, pretty=0)
+```
+
+As expected, the number of nodes in the tree has increased significantly.
+
+```{r}
+tree.pred <- predict(noL.tree, test, type="class")
+mean(tree.pred==test$Occupancy)
+```
+
+The performance of our tree on test data is quite poor: the absence of the variable light decreases the accuracy of predictions by a significant amount. Let us now check whether including more trees (hence building a forest) has a positive effect on performance.
+
+```{r}
+forests <- data.frame(matrix(, nrow=, ncol=2))
+names(forests) <- c("m", "Accuracy")
+for(m in 1:6){
+  rf.room <- randomForest(Occupancy~Temperature + Humidity + CO2 + hum_change + CO2_change + temp_change + Day, data=train , mtry=m, ntree=500)
+  yhat.rf <- predict(rf.room, newdata=test)
+  forests[m,] <- c(m, mean(yhat.rf==test$Occupancy))
+}
+forests
+```
+
+When testing a random forest, we see how the performance of our model significantly depends on how many predictors we build each tree with. Incredibly, it is better to make a random guess than to perform bagging. On the contrary, the performance of the forest is quite good when we build each tree with only one predictor.
