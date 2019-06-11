@@ -3,7 +3,22 @@ knitr::opts_chunk$set(echo = TRUE)
 require("knitr")
 ```
 
-## Dataset
+## Index:
+1. Analytics:
+- The dataset, some plots
+2. Feature extraction and selection
+- Day, exclusion of Humidity Ratio, time-dependent variations
+3. Models
+- Logistic Regression
+- Linear Discriminant Analysis
+- Quadratic Discriminant Analysis
+- K-Nearest Neighbours
+- Support Vector Classifier
+- Classification tree
+- Random Forestz
+4. Light exclusion
+5. How many people in the room?
+6. Conclusions
 
 Let us load our data. We are provided with three datasets: one training set and two test tests. Since the two test sets have the same columns, we simply merge them together.
 
@@ -438,20 +453,13 @@ forests
 
 When testing a random forest, we see how the performance of our model significantly depends on how many predictors we build each tree with. Incredibly, it is better to make a random guess than to perform bagging. On the contrary, the performance of the forest is quite good when we build each tree with only one predictor.
 
-
-### Clustering
-
-We want to find whether the data points labeled as 1 can be clustered. In other words, we want to predict how many people are in the room when the room is not empty.
-To do so, we merge the train and the test sets and consider only the records labelled with 1. We choose to exlcude the variable light (and consequently "Light_change").
+### Clustering when room is occupied
 
 ```{r}
-all <- rbind(train, test)
-all_occupied <- all[all$Occupancy==1,]
-pcaout.occ <- prcomp(all[c(2:5, 9:12)], scale=T)
-
-hc.average.occ <- hclust(dist(all_occupied[,c(2,3,5, 9:11)]), method = "average")
-plot(pcaout.occ$x[,c(1,2)], col=cutree(hc.average.occ,3), main="Hierarchical")
-#text(pcaout.occ$x[,c(1,2)], labels=rownames(all))
+All <- rbind(train[train$Occupancy == 1,], test[test$Occupancy == 1,])
+All <- All[-2702,]
+PPCA <- prcomp(All[c(2,3,5, 8:11)], scale=T)
+PPCA$rotation
+HC <- hclust(dist(All[,c(2,3,5,8:11)]), method = "average")
+plot(PPCA$x[,c(1,2)], col=cutree(HC,3))
 ```
-
-From the plot we can notice that the dots overlap. It seems that it is not possible to predict how many people are in the room based on the information provided by our test and train sets.
