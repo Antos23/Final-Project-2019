@@ -399,7 +399,7 @@ ggplot() +
       color = "Legend")
   
 ```
-Let us plot the rocs too. 
+Let us plot the ROC curves too. In particular, we want to compare the AUC of the most accurate forest with the default sample size (which is the one with mtry=1), with the AUC of the most accurate forest with the downsampled size (which is the one with mtry=4)  
 
 ```{r}
 library(pROC)
