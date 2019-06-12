@@ -330,21 +330,92 @@ Looking at the importance of the variables, we can clearly notice that light is 
 
 Accuratezza bagging ->95%.
 
-Random forest
+## Random forest
 
+We want to build different random forests with default parameters. We do not include the variables that were not significant in the previous models, as we do not expect them to improve the accuracy of the forests and to reduce computational costs.
 ```{r}
+library(randomForest)
+set.seed(1)
+forests_default <- data.frame(matrix(, nrow=, ncol=2))
+names(forests_default) <- c("m", "Accuracy")
+for(m in 1:6){
+  rf.room <- randomForest(Occupancy~ Temperature+ Humidity + Light + CO2 + hum_change + light_change, data=train ,mtry=m)
+  yhat.rf <- predict(rf.room, newdata=test)
+  forests_default[m,] <- c(m, mean(yhat.rf==test$Occupancy))
+}
+forests_default
+
+ggplot(forests_default, aes(forests_default$m, forests_default$Accuracy)) + geom_line() + geom_point() + xlab("Number of features") + ylab("Accuracy")
+
+```
+We can see that:
+1) the most accurate forest is less accurate than the single classification tree;
+2) the more variables are included, the less accurate is the model. 
+
+
+Let us play with the other parameters to see how things change. More specifically, we want to modify the number of trees used to build the forest ("ntree") and the size of the sample that is extracted from the train set ("sampsize"). 
+
+### Number of trees 
+
+Generally, increasing the number of trees leads to an increase in accuracy. However, in this case the improvement is not relevant, so we keep the number of trees as default. 
+```{r}
+set.seed(1)
 forests <- data.frame(matrix(, nrow=, ncol=2))
 names(forests) <- c("m", "Accuracy")
 for(m in 1:6){
-  rf.room <- randomForest(Occupancy~Temperature + Humidity + Light + CO2 + hum_change + light_change, data=train ,mtry=m, ntree=500)
-  print(importance(rf.room))
+  rf.room <- randomForest(Occupancy~ Temperature+ Humidity + Light + CO2 + hum_change + light_change, data=train ,mtry=m, ntree=600)
   yhat.rf <- predict(rf.room, newdata=test)
   forests[m,] <- c(m, mean(yhat.rf==test$Occupancy))
 }
 forests
 ```
+### Sample size
 
-Accuratezza random forest ->  la più alta è 97% con m=1. Perché?
+What about the portion of the data that is extracted from the train set to build the forests? If we keep the sample size as default, the whole train set will be used. However, the train set is slightly biased towards the 0 class, as about 20% of the records are labelled with 0 (empty room). We want to try to downsample a bit the majority class, in favour of the class 1 (occupied room). By doing so, we expect to increase the accuracy, and in particular to reduce the number of false negatives. We prefer to improve the sensitivity  over the specificity as we do not want our model to predict the room as empty just because it happens to be empty more frequently (false negatives). 
+
+```{r}
+set.seed(1)
+forests <- data.frame(matrix(, nrow=, ncol=2))
+names(forests) <- c("m", "Accuracy")
+for(m in 1:6){
+  rf.room <- randomForest(Occupancy~ Temperature+ Humidity + Light + CO2 + hum_change + light_change, data=train ,mtry=m, sampsize=c(400,700), strata=train$Occupancy)
+  yhat.rf <- predict(rf.room, newdata=test)
+  forests[m,] <- c(m, mean(yhat.rf==test$Occupancy))
+}
+forests
+```
+As a consequence, more parameters are needed: to tell if a room is empty, it is sufficient to know the level of light in the room, but to be sure that someone is in there we need more details. (HA SENSO?). We can summarize these results by looking at this plot:
+
+```{r}
+theme_set(theme_bw())
+ggplot() + 
+  geom_line(data=forests_default, aes(x =m, y=Accuracy, color ="sample size = 8132")) + 
+  geom_line(data=forests, aes(x=m, y=Accuracy, color = "sample size=c(400,700)"))+ 
+  geom_point(data=forests_default, aes(x =m, y=Accuracy)) + 
+  geom_point(data=forests, aes(x=m, y=Accuracy))+
+  scale_x_continuous(breaks = seq(1, 6, by = 1))+
+  labs(x="",
+      y="",
+      color = "Legend")
+  
+```
+Let us plot the rocs too. 
+
+```{r}
+library(pROC)
+
+rf1 <- randomForest(Occupancy~ Light+ Humidity  + CO2 + Temperature+ hum_change + light_change, data=train ,mtry=1)
+yhat1 <- predict(rf1, newdata=test)
+
+rf2 <- randomForest(Occupancy~ Light+ Humidity  + CO2 + Temperature+ hum_change + light_change, data=train ,mtry=4, sampsize=c(400,600))
+yhat2 <- predict(rf2, newdata=test)
+
+par(pty='s')
+roc(test$Occupancy, as.numeric(yhat1), plot=T, percent=T, legacy.axes=T, xlab='False Positive Percentage', ylab='True Positive Percentage', col='blue', print.auc=T)
+roc(test$Occupancy, as.numeric(yhat2), plot=T, percent=T, legacy.axes=T, xlab='False Positive Percentage', ylab='True Positive Percentage', col='red', print.auc=T, print.auc.y=40, add=T)
+legend('bottomright', legend=c('Default', 'Downsampling'), col = c('blue', 'red'), lwd=4)
+
+```
 
 Boosting
 
