@@ -1,0 +1,51 @@
+0. Libraries 
+
+```{r}
+library(tidyverse)
+library(cowplot)
+library(RColorBrewer)
+library(gapminder)
+```
+
+1. Enviromental conditions in the room
+
+```{r}
+plot_data_column <- function (column, col_name){
+  se <- sqrt(var(column))/ sqrt(length(column))
+ ggplot(train, aes(Occupancy, column, fill=Occupancy))+
+    geom_bar(stat = "summary", 
+             fun.y = "mean",
+             width= 0.3,
+             position = position_dodge(width = 0)) + 
+    scale_fill_brewer(palette="Pastel2") +
+    labs(x="",
+         y=col_name)+
+    theme_minimal() +
+    theme(legend.position="none")
+}
+
+plot_grid(plot_data_column(train$Temperature, "Temperature (°C)"), plot_data_column(train$Humidity, "Humidity (%)"), plot_data_column(train$Light, "Light (Lux)"), plot_data_column(train$CO2, "CO2 (ppm)"), nrow = 2)
+```
+
+2. Light over time
+
+```{r}
+light_plot <- ggplot(data = train, aes(date, Light, color = Occupancy)) + 
+  geom_point(size=0.8) +
+  scale_x_datetime(date_labels = "%a \n %d-%m \n", breaks = "24 hours" ) +
+  scale_color_manual(values=brewer.pal(name ="Pastel2", n = 2)) + 
+  labs(x = "Date", 
+       y = "Light (Lux)",
+       title = "Illuminance level over time") +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5, vjust = 2, size = 16, face = "italic"),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(face = "bold"),
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.key = element_rect(fill = "#f0f0f0", color = NA))+
+  guides(color = guide_legend(override.aes = list(size=4)))
+
+  
+ggplotly(light_plot)
+```
