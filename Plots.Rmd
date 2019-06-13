@@ -95,8 +95,11 @@ CO2_plot <- ggplot(data = train, aes(date, CO2, color = Occupancy)) +
         legend.key = element_rect(fill = "#f0f0f0", color = NA))+
   guides(color = guide_legend(override.aes = list(size=4)))
 
-ggplotly(CO2_plot)
+CO2_plot_ly <- ggplotly(CO2_plot)
+htmltools::save_html(CO2_plot_ly, "CO2_graph.html")
 ```
+[Click here to view the interactive plot](CO2_graph.html)
+
 -----------------NEW FEATURES-----------------
 
 5. Humidity change over time
