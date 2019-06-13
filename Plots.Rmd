@@ -8,11 +8,10 @@ library(gapminder)
 library(plotly)
 ```
 
-1. Enviromental conditions in the room
+1. Enviromental conditions mean
 
 ```{r}
-plot_data_column <- function (column, col_name){
-  se <- sqrt(var(column))/ sqrt(length(column))
+plot_data_mean <- function (column, col_name){
  ggplot(train, aes(Occupancy, column, fill=Occupancy))+
    geom_bar(stat = "summary", 
              fun.y = "mean",
@@ -27,12 +26,32 @@ plot_data_column <- function (column, col_name){
     
 }
 
-conditions_plot <- ggarrange(plot_data_column(train$Temperature, "Temperature (°C)"), plot_data_column(train$Humidity, "Humidity (%)"), plot_data_column(train$Light, "Light (Lux)"), plot_data_column(train$CO2, "CO2 (ppm)"), nrow = 2, ncol=2,common.legend = TRUE, legend="bottom")
+conditions_mean <- ggarrange(plot_data_mean(train$Temperature, "Temperature (°C)"), plot_data_mean(train$Humidity, "Humidity (%)"), plot_data_mean(train$Light, "Light (Lux)"), plot_data_mean(train$CO2, "CO2 (ppm)"), nrow = 2, ncol=2,common.legend = TRUE, legend="bottom")
 
-annotate_figure(conditions_plot, top =  text_grob("Enviromental conditions", face = "bold", size = 16, family="Raleway"))
+annotate_figure(conditions_mean, top =  text_grob("Enviromental conditions mean", size = 16, family="Raleway"))
 ```
 
-2. Light over time
+2. Enviromental conditions over time
+
+```{r}
+plot_time_series <- function (column, col_name){
+ ggplot(train, aes(date, column, color=Occupancy))+
+   geom_line() +
+   scale_fill_brewer(palette="Pastel2") +
+    labs(x="",
+         y=col_name)+
+   scale_x_datetime(date_labels = "%a \n %d-%m \n", breaks = "24 hours" ) +
+   theme_minimal() +
+   theme(legend.position = "bottom",
+         text = element_text(family="Raleway"))
+}
+
+series_plot <- ggarrange(plot_time_series(train$Temperature, "Temperature (°C)"), plot_time_series(train$Humidity, "Humidity (%)"), plot_time_series(train$Light, "Light (Lux)"), plot_time_series(train$CO2, "CO2 (ppm)"), nrow = 4,common.legend = TRUE, legend="bottom", heights = c(3, 3,3,3))
+
+annotate_figure(series_plot, top =  text_grob("Enviromental conditions over time", size = 16, family="Raleway"))
+```
+
+3. Light over time
 
 ```{r}
 light_plot <- ggplot(data = train, aes(date, Light, color = Occupancy)) + 
@@ -57,7 +76,7 @@ htmltools::save_html(light_plot_ly, "light_graph.html")
 ```
 [Click here to view the interactive plot](light_graph.html)
 
-3. CO2 over time
+4. CO2 over time
 
 ```{r}
 CO2_plot <- ggplot(data = train, aes(date, CO2, color = Occupancy)) + 
@@ -80,7 +99,7 @@ ggplotly(CO2_plot)
 ```
 -----------------NEW FEATURES-----------------
 
-4. Humidity change over time
+5. Humidity change over time
 
 ```{r}
 humchange_plot <- ggplot(data = train, aes(date, hum_change, color = Occupancy)) + 
