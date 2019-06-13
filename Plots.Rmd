@@ -5,6 +5,7 @@ library(tidyverse)
 library(cowplot)
 library(RColorBrewer)
 library(gapminder)
+library(plotly)
 ```
 
 1. Enviromental conditions in the room
@@ -13,18 +14,22 @@ library(gapminder)
 plot_data_column <- function (column, col_name){
   se <- sqrt(var(column))/ sqrt(length(column))
  ggplot(train, aes(Occupancy, column, fill=Occupancy))+
-    geom_bar(stat = "summary", 
+   geom_bar(stat = "summary", 
              fun.y = "mean",
              width= 0.3,
              position = position_dodge(width = 0)) + 
-    scale_fill_brewer(palette="Pastel2") +
+   scale_fill_brewer(palette="Pastel2") +
     labs(x="",
          y=col_name)+
-    theme_minimal() +
-    theme(legend.position="none")
+   theme_minimal() +
+   theme(legend.position = "bottom",
+         text = element_text(family="Raleway"))
+    
 }
 
-plot_grid(plot_data_column(train$Temperature, "Temperature (°C)"), plot_data_column(train$Humidity, "Humidity (%)"), plot_data_column(train$Light, "Light (Lux)"), plot_data_column(train$CO2, "CO2 (ppm)"), nrow = 2)
+conditions_plot <- ggarrange(plot_data_column(train$Temperature, "Temperature (°C)"), plot_data_column(train$Humidity, "Humidity (%)"), plot_data_column(train$Light, "Light (Lux)"), plot_data_column(train$CO2, "CO2 (ppm)"), nrow = 2, ncol=2,common.legend = TRUE, legend="bottom")
+
+annotate_figure(conditions_plot, top =  text_grob("Enviromental conditions", face = "bold", size = 16, family="Raleway"))
 ```
 
 2. Light over time
@@ -47,8 +52,11 @@ light_plot <- ggplot(data = train, aes(date, Light, color = Occupancy)) +
   guides(color = guide_legend(override.aes = list(size=4)))
 
   
-ggplotly(light_plot)
+light_plot_ly <- ggplotly(light_plot)
+htmltools::save_html(light_plot_ly, "light_graph.html")
 ```
+[Click here to view the interactive plot](light_graph.html)
+
 3. CO2 over time
 
 ```{r}
