@@ -62,7 +62,7 @@ light_plot <- ggplot(data = train, aes(date, Light, color = Occupancy)) +
        y = "Light (Lux)",
        title = "Illuminance level over time") +
   theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5, vjust = 2, size = 16, face = "italic"),
+  theme(plot.title = element_text(hjust = 0.5, vjust = 2, size = 16),
         legend.title = element_text(size = 10),
         legend.text = element_text(face = "bold"),
         legend.position = "bottom",
@@ -87,7 +87,7 @@ CO2_plot <- ggplot(data = train, aes(date, CO2, color = Occupancy)) +
        y = "CO2 (ppm)",
        title = "CO2 over time") +
   theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5, vjust = 2, size = 16, face = "italic"),
+  theme(plot.title = element_text(hjust = 0.5, vjust = 2, size = 16),
         legend.title = element_text(size = 10),
         legend.text = element_text(face = "bold"),
         legend.position = "bottom",
