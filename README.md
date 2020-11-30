@@ -1,6 +1,6 @@
 # Final-Project-2019
 
-This repository contains the final project that Francesco Cabras and Antonia Donvito realized for the Statistical Learning course within the Master's programme in Data Science at the University of Trento. 
+This repository contains the final project that <a href='https://github.com/celcof'>Francesco Cabras</a> and <a href='https://github.com/antos23'>Antonia Donvito</a> realized for the Statistical Learning course within the Master's programme in Data Science at the University of Trento. 
 We trained several classification models on the Occupancy Detection Data Set, which provide data from light, temperature, humidity and CO2 sensors in a room, with the aim of predicting whether the room is occupied or not. The dataset is available at the following link: http://archive.ics.uci.edu/ml/datasets/Occupancy+Detection+ .
 The repository contains:
 - Analysis.R, with the analysis carried out in R;
